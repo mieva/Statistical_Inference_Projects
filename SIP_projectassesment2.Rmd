@@ -1,0 +1,138 @@
+---
+title: 'Statistical Inference Course Project: The ToothGrowth data analysis'
+author: "Michela Ieva"
+date: "Friday, May 22, 2015"
+output: pdf_document
+---
+
+## Abstract
+We present the results of a study about the *ToothGrowth* dataset. Data describe the teeth growth in guinea pigs as result of different type of treatments with Vitamin C. Differences are in dosage: 0.5, 1 and 2 mg and type of supplement: orange juice or ascorbic acid.
+The goal is understand if the treatments were effective.
+
+```{r setup}
+library(knitr)
+library(ggplot2)
+
+echo = TRUE  # Always make code visible
+
+```
+
+## Data sample overview
+We download the dataset from R library.
+
+```{r data}
+library(datasets)
+data(ToothGrowth)
+
+```
+
+First of all we need to take a look at data format and variables.
+
+```{r}
+str(ToothGrowth)
+
+```
+So, as you can see data are organized in a data frame of 60 observations and 3 variables about the teeth lenght, the type of supplement (OJ or VC) and the dosis.
+
+Here a statistic summary of data sample:
+
+```{r summary}
+summary(ToothGrowth)
+
+```
+
+## Data preliminary analysis
+To understand the effects of the treatments we perform some basic plot:
+
+```{r plot1, fig.height= 3.5, fig.width= 3.5, fig.cap="Teeth lenght as function of type of supplents"}
+attach(ToothGrowth)
+plot(supp, len, main = "ToothGrowth data overview", xlab = "Type of delivery", ylab = "Lenght")
+
+```
+
+```{r plot2, fig.height= 3.5, fig.width= 3.5}
+plot(factor(dose), len, main = "ToothGrowth data overview", xlab = "Dosage (mg)", ylab = "Lenght")
+
+```
+
+It seems, from the first plot, orange juice should be a little bit more effective than ascorbic acid that shows, however, a bigger variability. Second plot shows a clear trend in increasing lenght with higher dosage.
+
+It is better try to visualize both effects in a more quantitative way, as follow:
+
+```{r plot3, fig.height= 3, fig.width= 6}
+ggplot(data=ToothGrowth, aes(x=factor(dose), y=len))+geom_point() + geom_smooth(method = "lm", aes(group = 1))+facet_grid(~supp) + ggtitle("Analysis of Tooth Growth")+labs(x = "Vitamin C dose (mg)", y="Lenght")
+
+```
+
+Here the increasing of lenght as function of dosage is clear also from the fit, instead the effectiveness of a particolar type of supplement is not so evident.
+
+## Statistical analysis : CI and hypothesis tests
+To be more quantitive and accept or reject the two null hypothesis:
+
+1. There is no difference on tooth length respect to supplement type(OJ and VC);
+2. There is no difference on tooth length respect to different dosage.
+
+we calculate a CI intervals and hypothesis tests on datasample.
+
+First of all, we need to subset data into smaller sample by *dose* and 
+*supp* variables to disentangle effects.
+
+```{r split}
+sampleOJ_1<-subset(ToothGrowth, (dose==0.5 & supp == "OJ"))
+sampleOJ_2<-subset(ToothGrowth, (dose==1.0 & supp == "OJ"))
+sampleOJ_3<-subset(ToothGrowth, (dose==2.0 & supp == "OJ"))
+
+sampleVC_1<-subset(ToothGrowth, (dose==0.5 & supp == "VC"))
+sampleVC_2<-subset(ToothGrowth, (dose==1.0 & supp == "VC"))
+sampleVC_3<-subset(ToothGrowth, (dose==2.0 & supp == "VC"))
+
+```
+
+Now each single sample looks like as follow,
+
+```{r}
+sampleOJ_1
+
+```
+
+To analyze data and accept or reject the null hypothesis, we have to use t-confidence interval, instead of normal, because of the smallness of the sample and we should suppose the samples are independent because there are no different info about that and furthermore with different variances.
+
+So, to check the effectiveness of different dosage we compare the sample 1, 2, and 3 for the same type of supplement:
+
+```{r ttest1}
+t.test(sampleOJ_2$len, sampleOJ_1$len, paired = FALSE, var.equal = FALSE)$conf
+t.test(sampleOJ_3$len, sampleOJ_1$len, paired = FALSE, var.equal = FALSE)$conf
+t.test(sampleOJ_3$len, sampleOJ_2$len, paired = FALSE, var.equal = FALSE)$conf
+
+t.test(sampleVC_2$len, sampleVC_1$len, paired = FALSE, var.equal = FALSE)$conf
+t.test(sampleVC_3$len, sampleVC_1$len, paired = FALSE, var.equal = FALSE)$conf
+t.test(sampleVC_3$len, sampleVC_2$len, paired = FALSE, var.equal = FALSE)$conf
+
+
+```
+
+On the contrary to test the hypothesis of different effect related to the use of orange juice or ascorbic acid, we should compare same dosage groups but different type of supplements.
+
+```{r ttest2}
+t.test(sampleOJ_1$len, sampleVC_1$len, paired = FALSE, var.equal = FALSE)$conf
+t.test(sampleOJ_2$len, sampleVC_2$len, paired = FALSE, var.equal = FALSE)$conf
+t.test(sampleOJ_3$len, sampleOJ_3$len, paired = FALSE, var.equal = FALSE)$conf
+
+```
+
+## Conclusions
+So, about the first null hypothesis:
+
+ 1. There is no difference on tooth length respect to supplement type(OJ and VC).
+ 
+According the results of t-confidence test at 95% CI, the first two intervals relative to dosages 0.5 and 1 mg are completely above zero than we can reject the null hypothesis and conclude a different effect on the teeth growth.
+Different the case of the last dosage, that contains zero-value, so we fail to reject the null hypothesis and conclude that in this case the effect of the dosage overcome the type of supplement.
+
+About the second null hypothesis:
+
+ 2. There is no difference on tooth length respect to different dosage.
+ 
+According the results of t-confidence test at 95% CI, all the intervals comparing different dosages lie completely above zero for both type of supplements. so we can reject the null hypothesis and conclude the strong effect of different tretement dosage on the teeth growth, as shown also by the clear trend in the initial plots.
+
+
+
